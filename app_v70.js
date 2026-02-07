@@ -3,7 +3,7 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-const API_BASE = 'http://178.209.127.94:8080';
+const API_BASE = 'https://178.209.127.94/api';
 
 // ===== HELPERS =====
 function safeAlert(message) {

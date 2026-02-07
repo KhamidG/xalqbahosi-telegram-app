@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Xalq Bahosi</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <link rel="stylesheet" href="style_v70.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- WELCOME SCREEN -->
+    <section id="screen-welcome" class="screen active">
+      <div class="premium-card" style="text-align: center; margin-top: 40px;">
+        <h1 style="font-size: 28px; margin-bottom: 12px;">Xalq Bahosi</h1>
+        <p style="color: var(--tg-theme-hint-color); margin-bottom: 30px;">Shahringiz infratuzilmasini yaxshilashga
+          yordam bering</p>
+        <button id="btn-geo" class="btn-primary" style="margin-bottom: 12px;">🗺️ Xaritani ko'rish</button>
+        <button id="btn-search" class="btn-primary"
+          style="background: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-text-color); box-shadow: none; border: 1px solid #ddd;">🔍
+          Manzil bo'yicha qidirish</button>
+        <button id="btn-show-stats" class="btn-primary" style="background: #2ecc71; margin-top: 12px;">📈 Statistika va
+          Yangiliklar</button>
+        <button id="btn-admin-view" class="btn-primary" style="background: #34495e; margin-top: 12px;">🔐 Admin
+          panel</button>
+      </div>
+    </section>
+
+    <!-- STATS SCREEN -->
+    <section id="screen-stats" class="screen">
+      <div class="premium-card">
+        <h2 style="margin-bottom: 20px;">Shahar rivojlanishi</h2>
+
+        <div id="stats-container"
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+          <!-- Stats will be injected here -->
+        </div>
+
+        <h3 style="margin-bottom: 16px;">So'nggi yangiliklar</h3>
+        <div id="announcements-list">
+          <!-- News will be injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP SCREEN -->
+    <section id="screen-map" class="screen">
+      <div id="map" style="height: 100vh; width: 100%;"></div>
+    </section>
+
+    <!-- SEARCH SCREEN -->
+    <section id="screen-search" class="screen">
+      <div class="premium-card">
+        <h2>Manzil bo'yicha qidirish</h2>
+        <div style="margin-bottom: 20px;">
+          <input type="text" id="search-input" placeholder="Manzilni kiriting..." 
+            style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+          <button id="search-btn" class="btn-primary" style="margin-top: 10px; width: 100%;">Qidirish</button>
+        </div>
+        <div id="search-results">
+          <!-- Results will be injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN SCREEN -->
+    <section id="screen-admin" class="screen">
+      <div class="premium-card">
+        <h2>Admin Panel</h2>
+        <div id="admin-content">
+          <p>Admin paneli tez orqada...</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app_v70.js"></script>
+</body>
+
+</html>

@@ -593,10 +593,30 @@ async function submitReview() {
       const locationReviews = reviews.filter(r => r.locationId === location.id);
       const avgRating = locationReviews.reduce((sum, r) => sum + r.rating, 0) / locationReviews.length;
       
-      await cloudStorage.updateLocation(location.id, {
+      const ratingUpdates = {
         rating: avgRating.toFixed(1),
         reviewCount: locationReviews.length
-      });
+      };
+      
+      await cloudStorage.updateLocation(location.id, ratingUpdates);
+      
+      // Update state.locations with new rating
+      const stateLocationIndex = state.locations.findIndex(loc => loc.id === state.selectedLocation.id);
+      if (stateLocationIndex !== -1) {
+        state.locations[stateLocationIndex] = {
+          ...state.locations[stateLocationIndex],
+          ...ratingUpdates
+        };
+        console.log('Updated state location rating:', state.locations[stateLocationIndex]);
+      }
+      
+      // Update selectedLocation too
+      state.selectedLocation = {
+        ...state.selectedLocation,
+        ...ratingUpdates
+      };
+      
+      console.log('Location rating updated to:', avgRating.toFixed(1));
     }
 
     tg.HapticFeedback.notificationOccurred('success');
@@ -1028,6 +1048,11 @@ function showLocationDetail(location) {
   cloudStorage.getReviews().then(reviews => {
     const locationReviews = reviews.filter(r => r.locationId === location.id);
     
+    // Calculate current rating from reviews
+    const currentRating = locationReviews.length > 0 
+      ? (locationReviews.reduce((sum, r) => sum + r.rating, 0) / locationReviews.length).toFixed(1)
+      : location.rating || 0;
+    
     const detailContent = document.getElementById('detail-content');
     detailContent.innerHTML = `
       <div style="text-align: center; margin-bottom: 20px;">
@@ -1036,7 +1061,7 @@ function showLocationDetail(location) {
         <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
           <div style="text-align: center;">
             <div style="font-size: 24px; margin-bottom: 4px;">⭐</div>
-            <div style="font-size: 18px; font-weight: bold;">${location.rating || 0}</div>
+            <div style="font-size: 18px; font-weight: bold;">${currentRating}</div>
             <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Reyting</div>
           </div>
           <div style="text-align: center;">

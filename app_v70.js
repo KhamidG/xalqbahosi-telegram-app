@@ -21,13 +21,13 @@ async function testAPI() {
 }
 
 // ===== LOCAL STORAGE =====
-const localStorage = {
-  getReviews: () => JSON.parse(window.localStorage.getItem('reviews') || '[]'),
-  saveReviews: (reviews) => window.localStorage.setItem('reviews', JSON.stringify(reviews)),
-  getLocations: () => JSON.parse(window.localStorage.getItem('locations') || JSON.stringify(demoLocations)),
-  saveLocations: (locations) => window.localStorage.setItem('locations', JSON.stringify(locations)),
-  getAnnouncements: () => JSON.parse(window.localStorage.getItem('announcements') || '[]'),
-  saveAnnouncements: (announcements) => window.localStorage.setItem('announcements', JSON.stringify(announcements))
+const appStorage = {
+  getReviews: () => JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]'),
+  saveReviews: (reviews) => window.localStorage.setItem('xalq_reviews', JSON.stringify(reviews)),
+  getLocations: () => JSON.parse(window.localStorage.getItem('xalq_locations') || JSON.stringify(demoLocations)),
+  saveLocations: (locations) => window.localStorage.setItem('xalq_locations', JSON.stringify(locations)),
+  getAnnouncements: () => JSON.parse(window.localStorage.getItem('xalq_announcements') || '[]'),
+  saveAnnouncements: (announcements) => window.localStorage.setItem('xalq_announcements', JSON.stringify(announcements))
 };
 
 // ===== HELPERS =====
@@ -264,8 +264,8 @@ async function loadStats() {
   console.log('Loading stats from local storage...');
   try {
     // Load locations from local storage
-    const locations = localStorage.getLocations();
-    const reviews = localStorage.getReviews();
+    const locations = appStorage.getLocations();
+    const reviews = appStorage.getReviews();
     
     // Calculate stats
     const stats = {
@@ -289,7 +289,7 @@ async function loadAllLocations() {
   console.log('Loading locations from local storage...');
   try {
     // Load from local storage
-    state.locations = localStorage.getLocations();
+    state.locations = appStorage.getLocations();
     console.log('Locations loaded from local storage:', state.locations.length);
   } catch (err) {
     console.error('Local storage error:', err);
@@ -387,12 +387,12 @@ async function submitReview() {
     console.log('Saving review locally:', review);
 
     // Save to local storage
-    const reviews = localStorage.getReviews();
+    const reviews = appStorage.getReviews();
     reviews.push(review);
-    localStorage.saveReviews(reviews);
+    appStorage.saveReviews(reviews);
 
     // Update location rating
-    const locations = localStorage.getLocations();
+    const locations = appStorage.getLocations();
     const location = locations.find(loc => loc.id === state.selectedLocation.id);
     if (location) {
       // Calculate new rating
@@ -400,7 +400,7 @@ async function submitReview() {
       const avgRating = locationReviews.reduce((sum, r) => sum + r.rating, 0) / locationReviews.length;
       location.rating = avgRating.toFixed(1);
       location.reviewCount = locationReviews.length;
-      localStorage.saveLocations(locations);
+      appStorage.saveLocations(locations);
     }
 
     tg.HapticFeedback.notificationOccurred('success');
@@ -817,18 +817,18 @@ function openReviewModal() {
 async function loadAnnouncements() {
   const container = document.getElementById('announcements-list');
   try {
-    const response = await fetch(`${API_BASE}/announcements`);
-    const data = await response.json();
+    // Load from local storage
+    const announcements = appStorage.getAnnouncements();
     
-    if (data.success && data.data.length > 0) {
-      container.innerHTML = data.data.map(news => `
+    if (announcements.length > 0) {
+      container.innerHTML = announcements.map(news => `
         <div style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px; border-left: 4px solid ${news.type === 'success' ? '#2ecc71' : news.type === 'warning' ? '#f1c40f' : '#3498db'};">
           <h4 style="margin-bottom: 6px; font-size: 15px;">${news.title}</h4>
           <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${news.content}</p>
           <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${new Date(news.createdAt).toLocaleDateString('uz-UZ')}</div>
         </div>
       `).join('');
-      console.log('Real announcements loaded:', data.data.length);
+      console.log('Announcements loaded from local storage:', announcements.length);
     } else {
       // Fallback to demo announcements
       const demoNews = [
@@ -853,10 +853,10 @@ async function loadAnnouncements() {
           <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${news.createdAt.toLocaleDateString('uz-UZ')}</div>
         </div>
       `).join('');
-      console.log('Using demo announcements - API failed');
+      console.log('Using demo announcements - no local data');
     }
   } catch (err) {
-    console.error('Announcements API error:', err);
+    console.error('Announcements error:', err);
     container.innerHTML = '<div style="color: var(--tg-theme-hint-color); font-size: 13px;">Yuklashda xato</div>';
   }
 }

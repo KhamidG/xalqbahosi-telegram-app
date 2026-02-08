@@ -725,23 +725,27 @@ async function onLocationClick(locationId) {
   tg.MainButton.enable();
 
   try {
-    const response = await fetch(`${API_BASE}/locations/${locationId}`);
-    const data = await response.json();
-
-    if (data.success) {
-      state.selectedLocation = data.data;
-      tg.MainButton.hide();
-      showLocationDetail(data.data);
-    } else {
+    // Try to find location in current state first
+    let location = state.locations.find(loc => loc.id === locationId);
+    
+    if (!location) {
+      // If not found in state, try to load from cloud storage
+      const locations = await cloudStorage.getLocations();
+      location = locations.find(loc => loc.id === locationId);
+    }
+    
+    if (!location) {
       // Fallback to demo data
-      const location = demoLocations.find(loc => loc.id === locationId);
-      if (location) {
-        state.selectedLocation = location;
-        tg.MainButton.hide();
-        showLocationDetail(location);
-      } else {
-        safeAlert('Joy topilmadi');
-      }
+      location = demoLocations.find(loc => loc.id === locationId);
+    }
+    
+    if (location) {
+      state.selectedLocation = location;
+      tg.MainButton.hide();
+      showLocationDetail(location);
+    } else {
+      safeAlert('Joy topilmadi');
+      tg.MainButton.hide();
     }
   } catch (err) {
     console.error('Location detail error:', err);
@@ -752,8 +756,8 @@ async function onLocationClick(locationId) {
       tg.MainButton.hide();
       showLocationDetail(location);
     } else {
-      tg.MainButton.hide();
       safeAlert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
+      tg.MainButton.hide();
     }
   }
 }

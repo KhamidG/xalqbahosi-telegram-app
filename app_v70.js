@@ -3,8 +3,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-// Use real API for data persistence
-const API_BASE = 'http://85.198.80.141/api';
+// Use local storage for demo - API blocked by Telegram
+const API_BASE = null; // Disabled due to Telegram security restrictions
 
 // ===== DEBUG FUNCTIONS =====
 async function testAPI() {
@@ -19,6 +19,16 @@ async function testAPI() {
     safeAlert('API ошибка: ' + err.message);
   }
 }
+
+// ===== LOCAL STORAGE =====
+const localStorage = {
+  getReviews: () => JSON.parse(window.localStorage.getItem('reviews') || '[]'),
+  saveReviews: (reviews) => window.localStorage.setItem('reviews', JSON.stringify(reviews)),
+  getLocations: () => JSON.parse(window.localStorage.getItem('locations') || JSON.stringify(demoLocations)),
+  saveLocations: (locations) => window.localStorage.setItem('locations', JSON.stringify(locations)),
+  getAnnouncements: () => JSON.parse(window.localStorage.getItem('announcements') || '[]'),
+  saveAnnouncements: (announcements) => window.localStorage.setItem('announcements', JSON.stringify(announcements))
+};
 
 // ===== HELPERS =====
 function safeAlert(message) {
@@ -251,42 +261,38 @@ const demoLocations = [
 
 // ===== API CALLS =====
 async function loadStats() {
-  console.log('Loading stats...');
+  console.log('Loading stats from local storage...');
   try {
-    const response = await fetch(`${API_BASE}/stats`);
-    const data = await response.json();
+    // Load locations from local storage
+    const locations = localStorage.getLocations();
+    const reviews = localStorage.getReviews();
     
-    if (data.success) {
-      renderStats(data.data);
-      console.log('Real stats loaded:', data.data);
-    } else {
-      // Fallback to demo data
-      renderStats({ total: 12 });
-      console.log('Using demo stats - API failed');
-    }
+    // Calculate stats
+    const stats = {
+      total: locations.length,
+      maktab: locations.filter(l => l.type === 'maktab').length,
+      klinika: locations.filter(l => l.type === 'klinika').length,
+      suv: locations.filter(l => l.type === 'suv').length,
+      yo_l: locations.filter(l => l.type === 'yo\'l').length
+    };
+    
+    renderStats(stats);
+    console.log('Stats calculated from local storage:', stats);
   } catch (err) {
-    console.error('Stats API error:', err);
+    console.error('Stats calculation error:', err);
     // Fallback to demo data
     renderStats({ total: 12 });
   }
 }
 
 async function loadAllLocations() {
-  console.log('Loading locations...');
+  console.log('Loading locations from local storage...');
   try {
-    const response = await fetch(`${API_BASE}/locations`);
-    const data = await response.json();
-    
-    if (data.success && data.data.length > 0) {
-      state.locations = data.data;
-      console.log('Real locations loaded:', data.data.length);
-    } else {
-      // Fallback to demo data
-      state.locations = demoLocations;
-      console.log('Using demo locations - API failed or empty');
-    }
+    // Load from local storage
+    state.locations = localStorage.getLocations();
+    console.log('Locations loaded from local storage:', state.locations.length);
   } catch (err) {
-    console.error('Locations API error:', err);
+    console.error('Local storage error:', err);
     // Fallback to demo data
     state.locations = demoLocations;
   }
@@ -366,61 +372,51 @@ async function submitReview() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    // First check API availability
-    console.log('Checking API availability...');
-    const healthResponse = await fetch(`${API_BASE}/health`);
-    if (!healthResponse.ok) {
-      throw new Error('API недоступен');
-    }
-    console.log('API is available');
+    // Create review object
+    const review = {
+      id: Date.now(),
+      locationId: state.selectedLocation.id,
+      userId: tg.initDataUnsafe?.user?.id || 0,
+      userName: tg.initDataUnsafe?.user?.first_name || 'Anonim',
+      rating: state.currentRating,
+      category: state.currentCategory,
+      text: text,
+      createdAt: new Date().toISOString()
+    };
 
-    // Create FormData as expected by server
-    const formData = new FormData();
-    formData.append('locationId', state.selectedLocation.id);
-    formData.append('userId', tg.initDataUnsafe?.user?.id || 0);
-    formData.append('userName', tg.initDataUnsafe?.user?.first_name || 'Anonim');
-    formData.append('rating', state.currentRating);
-    formData.append('category', state.currentCategory);
-    formData.append('text', text);
+    console.log('Saving review locally:', review);
 
-    console.log('Submitting review FormData:', formData);
-    console.log('API URL:', `${API_BASE}/reviews`);
+    // Save to local storage
+    const reviews = localStorage.getReviews();
+    reviews.push(review);
+    localStorage.saveReviews(reviews);
 
-    const response = await fetch(`${API_BASE}/reviews`, {
-      method: 'POST',
-      mode: 'cors', // Explicitly enable CORS
-      body: formData
-    });
-
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Update location rating
+    const locations = localStorage.getLocations();
+    const location = locations.find(loc => loc.id === state.selectedLocation.id);
+    if (location) {
+      // Calculate new rating
+      const locationReviews = reviews.filter(r => r.locationId === location.id);
+      const avgRating = locationReviews.reduce((sum, r) => sum + r.rating, 0) / locationReviews.length;
+      location.rating = avgRating.toFixed(1);
+      location.reviewCount = locationReviews.length;
+      localStorage.saveLocations(locations);
     }
 
-    const data = await response.json();
-    console.log('Response data:', data);
+    tg.HapticFeedback.notificationOccurred('success');
+    safePopup('Fikringiz uchun rahmat! Saqlandi mahalliy saqlashda.');
 
-    if (data.success) {
-      tg.HapticFeedback.notificationOccurred('success');
-      safePopup('Fikringiz uchun rahmat!');
+    document.getElementById('modal-review').classList.remove('active');
+    document.getElementById('review-text').value = '';
 
-      document.getElementById('modal-review').classList.remove('active');
-      document.getElementById('review-text').value = '';
-
-      tg.MainButton.hide();
-      
-      // Refresh data
-      loadAllLocations();
-      loadStats(); // Refresh stats to update rating
-      
-    } else {
-      console.error('API Error:', data);
-      safeAlert('Yuborishda xatolik yuz berdi: ' + (data.error || 'Noma\'lum xato'));
-    }
+    tg.MainButton.hide();
+    
+    // Refresh data
+    loadAllLocations();
+    loadStats(); // Refresh stats to update rating
+    
   } catch (err) {
-    console.error('Fetch Error:', err);
+    console.error('Save Error:', err);
     tg.HapticFeedback.notificationOccurred('error');
     safeAlert('Yuborishda xatolik yuz berdi: ' + err.message);
   } finally {

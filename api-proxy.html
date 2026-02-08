@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>API Proxy</title>
+</head>
+<body>
+    <script>
+        // Simple API proxy for GitHub Pages
+        async function proxyRequest() {
+            const url = new URLSearchParams(window.location.search).get('url');
+            if (!url) return;
+            
+            try {
+                const response = await fetch(`http://85.198.80.141${url}`);
+                const data = await response.json();
+                
+                // Send data back to parent window
+                window.parent.postMessage({
+                    type: 'api-response',
+                    data: data,
+                    url: url
+                }, '*');
+            } catch (error) {
+                window.parent.postMessage({
+                    type: 'api-error',
+                    error: error.message,
+                    url: url
+                }, '*');
+            }
+        }
+        
+        proxyRequest();
+    </script>
+</body>
+</html>

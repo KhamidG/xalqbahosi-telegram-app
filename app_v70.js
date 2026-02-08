@@ -352,22 +352,28 @@ async function submitReview() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    const reviewData = {
-      locationId: state.selectedLocation.id,
-      userId: tg.initDataUnsafe?.user?.id || 0,
-      userName: tg.initDataUnsafe?.user?.first_name || 'Anonim',
-      rating: state.currentRating,
-      category: state.currentCategory,
-      text: text
-    };
+    // Create FormData as expected by server
+    const formData = new FormData();
+    formData.append('locationId', state.selectedLocation.id);
+    formData.append('userId', tg.initDataUnsafe?.user?.id || 0);
+    formData.append('userName', tg.initDataUnsafe?.user?.first_name || 'Anonim');
+    formData.append('rating', state.currentRating);
+    formData.append('category', state.currentCategory);
+    formData.append('text', text);
+
+    console.log('Submitting review FormData:', formData);
+    console.log('API URL:', `${API_BASE}/reviews`);
 
     const response = await fetch(`${API_BASE}/reviews`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reviewData)
+      body: formData
     });
 
+    console.log('Response status:', response.status);
+
     const data = await response.json();
+    console.log('Response data:', data);
+
     if (data.success) {
       tg.HapticFeedback.notificationOccurred('success');
       safePopup('Fikringiz uchun rahmat!');
@@ -382,9 +388,11 @@ async function submitReview() {
       loadStats(); // Refresh stats to update rating
       
     } else {
+      console.error('API Error:', data);
       safeAlert('Yuborishda xatolik yuz berdi: ' + (data.error || 'Noma\'lum xato'));
     }
   } catch (err) {
+    console.error('Fetch Error:', err);
     tg.HapticFeedback.notificationOccurred('error');
     safeAlert('Yuborishda xatolik yuz berdi: ' + err.message);
   } finally {

@@ -461,7 +461,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-admin-logout').addEventListener('click', handleAdminLogout);
   document.getElementById('btn-save-location').addEventListener('click', saveNewLocation);
 
-  document.getElementById('btn-test-api').addEventListener('click', testAPI);
+  // API Test button - with error handling
+  const testApiBtn = document.getElementById('btn-test-api');
+  if (testApiBtn) {
+    testApiBtn.addEventListener('click', testAPI);
+    console.log('Test API button found and listener attached');
+  } else {
+    console.error('Test API button not found!');
+  }
+
   document.getElementById('btn-show-stats').addEventListener('click', () => {
     console.log('Stats button clicked');
     showScreen('stats');

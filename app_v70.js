@@ -4,7 +4,7 @@ tg.ready();
 
 // ===== CONFIGURATION =====
 // Use production API for Telegram Mini App
-const API_BASE = 'https://85.198.80.141:9999/api';
+const API_BASE = 'https://85.198.80.141/api';
 
 // ===== HELPERS =====
 function safeAlert(message) {

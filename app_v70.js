@@ -6,6 +6,20 @@ tg.ready();
 // Use real API for data persistence
 const API_BASE = 'http://85.198.80.141/api';
 
+// ===== DEBUG FUNCTIONS =====
+async function testAPI() {
+  console.log('Testing API...');
+  try {
+    const response = await fetch(`${API_BASE}/health`);
+    const data = await response.json();
+    console.log('API Test Result:', data);
+    safeAlert('API работает! ' + JSON.stringify(data));
+  } catch (err) {
+    console.error('API Test Error:', err);
+    safeAlert('API ошибка: ' + err.message);
+  }
+}
+
 // ===== HELPERS =====
 function safeAlert(message) {
   try {
@@ -352,6 +366,14 @@ async function submitReview() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
+    // First check API availability
+    console.log('Checking API availability...');
+    const healthResponse = await fetch(`${API_BASE}/health`);
+    if (!healthResponse.ok) {
+      throw new Error('API недоступен');
+    }
+    console.log('API is available');
+
     // Create FormData as expected by server
     const formData = new FormData();
     formData.append('locationId', state.selectedLocation.id);
@@ -366,10 +388,16 @@ async function submitReview() {
 
     const response = await fetch(`${API_BASE}/reviews`, {
       method: 'POST',
+      mode: 'cors', // Explicitly enable CORS
       body: formData
     });
 
     console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
 
     const data = await response.json();
     console.log('Response data:', data);
@@ -433,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-admin-logout').addEventListener('click', handleAdminLogout);
   document.getElementById('btn-save-location').addEventListener('click', saveNewLocation);
 
+  document.getElementById('btn-test-api').addEventListener('click', testAPI);
   document.getElementById('btn-show-stats').addEventListener('click', () => {
     console.log('Stats button clicked');
     showScreen('stats');

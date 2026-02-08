@@ -3,7 +3,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-const API_BASE = 'http://178.209.127.94:9999/api';
+// Use production API for Telegram Mini App
+const API_BASE = 'https://85.198.80.141:9999/api';
 
 // ===== HELPERS =====
 function safeAlert(message) {

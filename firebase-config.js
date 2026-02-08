@@ -1,12 +1,13 @@
 // ===== FIREBASE CONFIGURATION =====
 // Firebase configuration for Xalq Bahosi app
 const firebaseConfig = {
-  apiKey: "AIzaSyDemoKey-ReplaceWithRealKey",
+  apiKey: "AIzaSyA5jSw-v4yAII1D88Pg32sZK3xP-A_usjM",
   authDomain: "xalq-bahosi.firebaseapp.com",
   projectId: "xalq-bahosi",
-  storageBucket: "xalq-bahosi.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  storageBucket: "xalq-bahosi.firebasestorage.app",
+  messagingSenderId: "1087804398362",
+  appId: "1:1087804398362:web:0e9c2a9ac6f9b6ed2b6aa3",
+  measurementId: "G-QFCJ3V1KMF"
 };
 
 // Initialize Firebase

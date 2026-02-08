@@ -3,8 +3,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-// Direct API call with proper CORS setup
-const API_BASE = 'http://85.198.80.141/api';
+// Use demo data for now - API will be optional
+const API_BASE = null; // Disabled for now
 
 // ===== HELPERS =====
 function safeAlert(message) {
@@ -187,28 +187,70 @@ async function loadCategories() {
   }
 }
 
+// ===== DEMO DATA =====
+const demoLocations = [
+  {
+    id: 1,
+    name: "Maktab №45",
+    type: "maktab",
+    address: "Bunyodkor ko'chasi, 15",
+    lat: 41.3111,
+    lon: 69.2797,
+    rating: 4.5,
+    reviews: 23
+  },
+  {
+    id: 2,
+    name: "Shifoxona №3",
+    type: "klinika",
+    address: "Olmazor ko'chasi, 8",
+    lat: 41.3150,
+    lon: 69.2834,
+    rating: 4.2,
+    reviews: 18
+  },
+  {
+    id: 3,
+    name: "Bogcha 'Bahor'",
+    type: "bogcha",
+    address: "Chilanzar ko'chasi, 22",
+    lat: 41.3089,
+    lon: 69.2765,
+    rating: 4.8,
+    reviews: 31
+  }
+];
+
 // ===== API CALLS =====
 async function loadStats() {
-  try {
-    const response = await fetch(`${API_BASE}/health`);
-    const data = await response.json();
-    if (data.status === 'OK') {
-      renderStats({
-        total_locations: 12,
-        total_reviews: 156,
-        avg_rating: 4.2,
-        active_users: 89
-      });
+  // Always show demo data for now
+  renderStats({
+    total_locations: 12,
+    total_reviews: 156,
+    avg_rating: 4.2,
+    active_users: 89
+  });
+  
+  // Try API in background (optional)
+  if (API_BASE) {
+    try {
+      const response = await fetch(`${API_BASE}/health`);
+      const data = await response.json();
+      console.log('API connected successfully:', data);
+    } catch (err) {
+      console.log('API not available, using demo data');
     }
-  } catch (err) {
-    console.error('Failed to load stats:', err);
-    // Show default stats if API fails
-    renderStats({
-      total_locations: 12,
-      total_reviews: 156,
-      avg_rating: 4.2,
-      active_users: 89
-    });
+  }
+}
+
+async function loadAllLocations() {
+  // Use demo data
+  state.locations = demoLocations;
+  if (typeof updateMarkers === 'function') {
+    updateMarkers(state.locations);
+  }
+  if (typeof renderLocationsList === 'function') {
+    renderLocationsList();
   }
 }
 

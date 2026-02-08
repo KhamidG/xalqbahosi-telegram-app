@@ -631,23 +631,87 @@ async function loadStats() {
   }
 }
 
+function showLocationDetail(location) {
+  state.selectedLocation = location;
+  
+  const detailContent = document.getElementById('detail-content');
+  detailContent.innerHTML = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="margin-bottom: 8px;">${location.name}</h2>
+      <p style="color: var(--tg-theme-hint-color); margin-bottom: 16px;">${location.address}</p>
+      <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
+        <div style="text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 4px;">⭐</div>
+          <div style="font-size: 18px; font-weight: bold;">${location.rating}</div>
+          <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Reyting</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 4px;">💬</div>
+          <div style="font-size: 18px; font-weight: bold;">${location.reviews}</div>
+          <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Fikrlar</div>
+        </div>
+      </div>
+      <button onclick="openReviewModal()" class="btn-primary" style="width: 100%; margin-bottom: 16px;">
+        📝 Fikr qoldirish
+      </button>
+    </div>
+    
+    <div style="border-top: 1px solid var(--tg-theme-hint-color); padding-top: 16px;">
+      <h3 style="margin-bottom: 12px;">So'nggi fikrlar</h3>
+      <div style="color: var(--tg-theme-hint-color); font-size: 13px;">
+        Hozircha fikrlar yo'q. Birinchi bo'lib fikr qoldiring!
+      </div>
+    </div>
+  `;
+  
+  showScreen('detail');
+}
+
+function openReviewModal() {
+  if (!state.selectedLocation) return;
+  
+  // Reset form
+  state.currentRating = 0;
+  state.currentCategory = null;
+  document.getElementById('review-text').value = '';
+  updateStarsUI(0);
+  
+  // Show modal
+  document.getElementById('modal-review').classList.add('active');
+  
+  // Setup main button
+  tg.MainButton.setText('Fikr yuborish');
+  tg.MainButton.color = '#007AFF';
+  tg.MainButton.show();
+  tg.MainButton.enable();
+  tg.MainButton.onClick(submitReview);
+}
+
 async function loadAnnouncements() {
   const container = document.getElementById('announcements-list');
-  try {
-    const response = await fetch(`${API_BASE}/api/announcements`);
-    const data = await response.json();
-    if (data.success) {
-      container.innerHTML = data.data.map(news => `
-        <div style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px; border-left: 4px solid ${news.type === 'success' ? '#2ecc71' : news.type === 'warning' ? '#f1c40f' : '#3498db'};">
-          <h4 style="margin-bottom: 6px; font-size: 15px;">${news.title}</h4>
-          <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${news.content}</p>
-          <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${new Date(news.createdAt).toLocaleDateString('uz-UZ')}</div>
-        </div>
-      `).join('') || '<div style="color: var(--tg-theme-hint-color); font-size: 13px;">Hozircha yangiliklar yo\'q.</div>';
+  // Use demo announcements
+  const demoNews = [
+    {
+      title: 'Yangi maktab ochildi',
+      content: 'Bunyodkor tumanida 3-sonli maktab binosi qurilmoqda',
+      type: 'success',
+      createdAt: new Date()
+    },
+    {
+      title: 'Yo\'l ta\'mirlanmoqda',
+      content: 'Olmazor ko\'chasidagi yo\'l ta\'miri boshlandi',
+      type: 'warning',
+      createdAt: new Date()
     }
-  } catch (err) {
-    container.innerHTML = 'Yuklashda xato';
-  }
+  ];
+  
+  container.innerHTML = demoNews.map(news => `
+    <div style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px; border-left: 4px solid ${news.type === 'success' ? '#2ecc71' : news.type === 'warning' ? '#f1c40f' : '#3498db'};">
+      <h4 style="margin-bottom: 6px; font-size: 15px;">${news.title}</h4>
+      <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${news.content}</p>
+      <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${news.createdAt.toLocaleDateString('uz-UZ')}</div>
+    </div>
+  `).join('');
 }
 
 async function saveAnnouncement() {
@@ -662,21 +726,21 @@ async function saveAnnouncement() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    const response = await fetch(`${API_BASE}/api/announcements`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, type })
-    });
-    const data = await response.json();
-
-    if (data.success) {
-      tg.HapticFeedback.notificationOccurred('success');
-      safePopup('Yangilik muvaffaqiyatli e\'lon qilindi!');
-      document.getElementById('news-title').value = '';
-      document.getElementById('news-content').value = '';
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    tg.HapticFeedback.notificationOccurred('success');
+    safePopup('E\'lon muvaffaqiyatli joylandi! Demo versiyada saqlanmaydi.');
+    
+    // Clear form
+    document.getElementById('news-title').value = '';
+    document.getElementById('news-content').value = '';
+    
+    // Refresh announcements
+    loadAnnouncements();
+    
   } catch (err) {
-    safeAlert('Saqlashda xato: ' + err.message);
+    safeAlert('Yuborishda xatolik yuz berdi');
   } finally {
     btn.disabled = false;
     btn.textContent = 'E\'lon qilish';

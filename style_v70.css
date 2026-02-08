@@ -50,6 +50,48 @@ body {
   min-height: 100vh;
 }
 
+/* ===== SCREEN HEADER WITH BACK BUTTON ===== */
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--tg-theme-bg-color);
+  border-bottom: 1px solid var(--tg-theme-hint-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--tg-theme-link-color);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--tg-theme-secondary-bg-color);
+}
+
+.back-btn:active {
+  transform: scale(0.95);
+}
+
+.screen-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+  margin-right: 40px; /* Balance the back button */
+}
+
 .screen {
   display: none;
   padding: 16px;

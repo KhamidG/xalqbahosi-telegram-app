@@ -34,9 +34,11 @@
 
     <!-- STATS SCREEN -->
     <section id="screen-stats" class="screen">
+      <div class="screen-header">
+        <button onclick="showScreen('welcome')" class="back-btn">← Orqaga</button>
+        <h2>Shahar rivojlanishi</h2>
+      </div>
       <div class="premium-card">
-        <h2 style="margin-bottom: 20px;">Shahar rivojlanishi</h2>
-
         <div id="stats-container"
           style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
           <!-- Stats will be injected here -->
@@ -48,38 +50,152 @@
         </div>
       </div>
     </section>
-
-    <!-- MAP SCREEN -->
-    <section id="screen-map" class="screen">
-      <div id="map" style="height: 100vh; width: 100%;"></div>
-    </section>
-
-    <!-- SEARCH SCREEN -->
-    <section id="screen-search" class="screen">
+    <!-- ADMIN LOGIN SCREEN -->
+    <section id="screen-admin-login" class="screen">
+      <div class="screen-header">
+        <button onclick="showScreen('welcome')" class="back-btn">← Orqaga</button>
+        <h2>Admin tizimga kirish</h2>
+      </div>
       <div class="premium-card">
-        <h2>Manzil bo'yicha qidirish</h2>
-        <div style="margin-bottom: 20px;">
-          <input type="text" id="search-input" placeholder="Manzilni kiriting..." 
-            style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
-          <button id="search-btn" class="btn-primary" style="margin-top: 10px; width: 100%;">Qidirish</button>
-        </div>
-        <div id="search-results">
-          <!-- Results will be injected here -->
-        </div>
+        <input type="text" id="admin-login" class="premium-input" placeholder="Login" style="margin-bottom: 12px;">
+        <input type="password" id="admin-password" class="premium-input" placeholder="Parol"
+          style="margin-bottom: 20px;">
+        <button id="btn-do-login" class="btn-primary">Kirish</button>
       </div>
     </section>
 
-    <!-- ADMIN SCREEN -->
-    <section id="screen-admin" class="screen">
-      <div class="premium-card">
+    <!-- ADMIN DASHBOARD -->
+    <section id="screen-admin-dashboard" class="screen">
+      <div class="screen-header">
+        <button onclick="showScreen('welcome')" class="back-btn">← Orqaga</button>
         <h2>Admin Panel</h2>
-        <div id="admin-content">
-          <p>Admin paneli tez orqada...</p>
+      </div>
+      <div class="premium-card">
+
+        <div
+          style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px;">
+          <h3 style="margin-bottom: 16px; font-size: 16px;">Yangi joy qo'shish</h3>
+          <input type="text" id="new-loc-name" class="premium-input" placeholder="Nomi (masalan: Maktab №45)"
+            style="margin-bottom: 8px;">
+          <select id="new-loc-type" class="premium-input" style="margin-bottom: 8px; width: 100%;">
+            <option value="maktab">🏫 Maktab</option>
+            <option value="klinika">🏥 Shifoxona</option>
+            <option value="yo'l">🛣️ Yo'l holati</option>
+            <option value="suv">💧 Suv ta'minoti</option>
+            <option value="bogcha">🧒 Bog'cha</option>
+          </select>
+          <input type="text" id="new-loc-address" class="premium-input" placeholder="Manzil"
+            style="margin-bottom: 8px;">
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <input type="number" id="new-loc-lat" step="any" class="premium-input" placeholder="Latitude">
+            <input type="number" id="new-loc-lon" step="any" class="premium-input" placeholder="Longitude">
+          </div>
+          <button id="btn-save-location" class="btn-primary" style="background: #27ae60;">Saqlash</button>
+        </div>
+
+        <div
+          style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px;">
+          <h3 style="margin-bottom: 16px; font-size: 16px;">Yangilik joylash</h3>
+          <input type="text" id="news-title" class="premium-input" placeholder="Sarlavha" style="margin-bottom: 8px;">
+          <textarea id="news-content" class="premium-input" placeholder="Xabar matni..."
+            style="margin-bottom: 8px;"></textarea>
+          <select id="news-type" class="premium-input" style="margin-bottom: 12px; width: 100%;">
+            <option value="info">ℹ️ Ma'lumot</option>
+            <option value="success">✅ Muvaffaqiyat</option>
+            <option value="warning">⚠️ Ogohlantirish</option>
+          </select>
+          <button id="btn-post-news" class="btn-primary" style="background: #3498db;">E'lon qilish</button>
+        </div>
+
+        <h3>Mavjud joylar ro'yxati</h3>
+        <div id="admin-places-list" style="margin-top: 12px;"></div>
+      </div>
+    </section>
+
+    <section id="screen-map" class="screen">
+      <div class="screen-header">
+        <button onclick="showScreen('welcome')" class="back-btn">← Orqaga</button>
+        <h2>Xarita</h2>
+      </div>
+      <!-- MAP FILTERS -->
+      <div id="map-filters" class="map-overlay-categories">
+        <div class="map-chip active" data-type="all">📍 Hammasi</div>
+        <div class="map-chip" data-type="maktab">🏫 Maktablar</div>
+        <div class="map-chip" data-type="klinika">🏥 Shifoxonalar</div>
+        <div class="map-chip" data-type="yo'l">🛣️ Yo'llar</div>
+        <div class="map-chip" data-type="bogcha">🧒 Bog'chalar</div>
+      </div>
+
+      <div id="map" style="flex: 1; min-height: 300px;"></div>
+      <div id="bottom-sheet" class="bottom-sheet">
+        <div
+          style="width: 40px; height: 4px; background: var(--tg-theme-hint-color); border-radius: 2px; margin: 0 auto 12px; opacity: 0.3;">
+        </div>
+        <div class="places-list-scroll">
+          <div id="places-list"></div>
         </div>
       </div>
     </section>
+
+    <!-- DETAIL SCREEN -->
+    <section id="screen-detail" class="screen">
+      <div class="screen-header">
+        <button onclick="showScreen('map')" class="back-btn">← Orqaga</button>
+        <h2>Tafsilotlar</h2>
+      </div>
+      <div class="premium-card">
+        <div id="detail-content"></div>
+      </div>
+    </section>
+
+    <!-- REVIEW MODAL -->
+    <div id="modal-review" class="modal">
+      <div class="modal-content">
+        <div class="review-header">
+          <h2>Fikr qoldirish</h2>
+        </div>
+
+        <p style="font-weight: 600; margin-bottom: 8px;">Joyni baholang</p>
+        <div id="star-rating" class="star-rating">
+          <span class="star" data-value="1">⭐</span>
+          <span class="star" data-value="2">⭐</span>
+          <span class="star" data-value="3">⭐</span>
+          <span class="star" data-value="4">⭐</span>
+          <span class="star" data-value="5">⭐</span>
+        </div>
+
+        <p style="font-weight: 600; margin-bottom: 8px;">Kategoriyani tanlang</p>
+        <div id="categories-tags" class="tags-container">
+          <!-- Tags will be injected here -->
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Isbot Biriktirish
+            (Ixtiyoriy)</label>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <button type="button" onclick="document.getElementById('review-file').click()" class="tag-chip"
+              style="border-style: dashed; padding: 10px 16px;">
+              ➕ Rasm/Video/Doc
+            </button>
+            <input type="file" id="review-file" accept="image/*,video/*,.pdf" style="display: none;"
+              onchange="handleFileSelect(this)">
+            <div id="file-preview" style="font-size: 12px; color: var(--tg-theme-hint-color);">Fayl tanlanmagan</div>
+          </div>
+        </div>
+
+        <textarea id="review-text" class="premium-input"
+          placeholder="Muammo yoki tajribangiz haqida batafsilroq gapirib bering..."></textarea>
+
+        <div style="display: flex; gap: 12px;">
+          <button id="btn-close-modal" class="btn-primary"
+            style="background: #eee; color: #333; box-shadow: none;">Bekor qilish</button>
+          <button id="btn-submit-review-fallback" class="btn-primary">Yuborish</button>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <script src="map_v70.js"></script>
   <script src="app_v70.js"></script>
 </body>
 

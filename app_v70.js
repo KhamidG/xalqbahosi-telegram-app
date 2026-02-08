@@ -128,6 +128,34 @@ function handleGeolocation() {
   );
 }
 
+function renderStats(stats) {
+  console.log('Rendering stats:', stats);
+  const container = document.getElementById('stats-container');
+  if (!container) {
+    console.error('Stats container not found!');
+    return;
+  }
+  container.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-number">${stats.total_locations}</div>
+      <div class="stat-label">Joylar</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">${stats.total_reviews}</div>
+      <div class="stat-label">Fikrlar</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">${stats.avg_rating}</div>
+      <div class="stat-label">O'rtacha bahola</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">${stats.active_users}</div>
+      <div class="stat-label">Foydalanuvchilar</div>
+    </div>
+  `;
+  console.log('Stats rendered');
+}
+
 // ===== API CALLS =====
 async function loadNearbyLocations() {
   // Use demo data
@@ -200,6 +228,7 @@ const demoLocations = [
 
 // ===== API CALLS =====
 async function loadStats() {
+  console.log('Loading stats...');
   // Always show demo data for now
   renderStats({
     total_locations: 12,
@@ -207,6 +236,7 @@ async function loadStats() {
     avg_rating: 4.2,
     active_users: 89
   });
+  console.log('Stats loaded');
   
   // Try API in background (optional)
   if (API_BASE) {
@@ -350,6 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-save-location').addEventListener('click', saveNewLocation);
 
   document.getElementById('btn-show-stats').addEventListener('click', () => {
+    console.log('Stats button clicked');
     showScreen('stats');
     loadStats();
     loadAnnouncements();

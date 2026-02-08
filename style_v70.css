@@ -361,6 +361,35 @@ body:has(.tg-back-button-active) .browser-back-btn {
   transform: scale(0.95);
 }
 
+/* ===== STATS CARDS ===== */
+.stat-card {
+  background: var(--tg-theme-secondary-bg-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  border: 1px solid var(--tg-theme-hint-color);
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--tg-theme-button-color);
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* ===== MODALS ===== */
 .modal {
   display: none;

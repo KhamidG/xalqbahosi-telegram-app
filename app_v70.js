@@ -3,8 +3,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-// Use API proxy to avoid CORS issues
-const API_BASE = 'https://KhamidG.github.io/xalqbahosi-telegram-app/api-proxy.html?url=';
+// Direct API call with proper CORS setup
+const API_BASE = 'http://85.198.80.141/api';
 
 // ===== HELPERS =====
 function safeAlert(message) {
@@ -187,39 +187,11 @@ async function loadCategories() {
   }
 }
 
-async function apiCall(endpoint) {
-  return new Promise((resolve, reject) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = `${API_BASE}${endpoint}`;
-    
-    const timeout = setTimeout(() => {
-      document.body.removeChild(iframe);
-      reject(new Error('API timeout'));
-    }, 10000);
-    
-    const handleMessage = (event) => {
-      if (event.data.type === 'api-response') {
-        clearTimeout(timeout);
-        window.removeEventListener('message', handleMessage);
-        document.body.removeChild(iframe);
-        resolve(event.data.data);
-      } else if (event.data.type === 'api-error') {
-        clearTimeout(timeout);
-        window.removeEventListener('message', handleMessage);
-        document.body.removeChild(iframe);
-        reject(new Error(event.data.error));
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    document.body.appendChild(iframe);
-  });
-}
-
+// ===== API CALLS =====
 async function loadStats() {
   try {
-    const data = await apiCall('/api/health');
+    const response = await fetch(`${API_BASE}/health`);
+    const data = await response.json();
     if (data.status === 'OK') {
       renderStats({
         total_locations: 12,
@@ -230,7 +202,7 @@ async function loadStats() {
     }
   } catch (err) {
     console.error('Failed to load stats:', err);
-    // Show default stats
+    // Show default stats if API fails
     renderStats({
       total_locations: 12,
       total_reviews: 156,

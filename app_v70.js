@@ -47,6 +47,7 @@ const cloudStorage = {
     try {
       if (window.firebaseDB) {
         const locations = await window.firebaseDB.getLocations();
+        console.log('Raw locations from Firebase:', locations);
         
         // If no locations in Firestore, initialize with demo data
         if (locations.length === 0) {
@@ -54,10 +55,19 @@ const cloudStorage = {
           for (const demoLocation of demoLocations) {
             await window.firebaseDB.addLocation(demoLocation);
           }
-          return await window.firebaseDB.getLocations();
+          const freshLocations = await window.firebaseDB.getLocations();
+          console.log('Fresh locations after initialization:', freshLocations);
+          return freshLocations;
         }
         
-        return locations;
+        // Ensure all locations have proper ID field
+        const processedLocations = locations.map(loc => ({
+          ...loc,
+          id: loc.id || loc.locationId || loc._id || `loc_${Date.now()}_${Math.random()}`
+        }));
+        
+        console.log('Processed locations:', processedLocations);
+        return processedLocations;
       } else {
         // Fallback to localStorage
         return JSON.parse(window.localStorage.getItem('xalq_locations') || JSON.stringify(demoLocations));
@@ -719,31 +729,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Bridge functions for map.js
 async function onLocationClick(locationId) {
+  console.log('onLocationClick called with locationId:', locationId);
+  
   // Show loading state
   tg.MainButton.setText('Yuklanmoqda...');
   tg.MainButton.show();
   tg.MainButton.enable();
 
   try {
+    console.log('Current state.locations:', state.locations);
+    console.log('Looking for location with ID:', locationId);
+    
     // Try to find location in current state first
     let location = state.locations.find(loc => loc.id === locationId);
+    console.log('Found in state:', location);
     
     if (!location) {
+      console.log('Not found in state, loading from cloud storage...');
       // If not found in state, try to load from cloud storage
       const locations = await cloudStorage.getLocations();
+      console.log('Loaded from cloud storage:', locations);
       location = locations.find(loc => loc.id === locationId);
+      console.log('Found in cloud storage:', location);
     }
     
     if (!location) {
+      console.log('Not found in cloud storage, checking demo data...');
       // Fallback to demo data
       location = demoLocations.find(loc => loc.id === locationId);
+      console.log('Found in demo data:', location);
     }
     
     if (location) {
+      console.log('Location found, showing details:', location);
       state.selectedLocation = location;
       tg.MainButton.hide();
       showLocationDetail(location);
     } else {
+      console.error('Location not found anywhere!');
       safeAlert('Joy topilmadi');
       tg.MainButton.hide();
     }
@@ -751,6 +774,7 @@ async function onLocationClick(locationId) {
     console.error('Location detail error:', err);
     // Fallback to demo data
     const location = demoLocations.find(loc => loc.id === locationId);
+    console.log('Error fallback - found in demo:', location);
     if (location) {
       state.selectedLocation = location;
       tg.MainButton.hide();

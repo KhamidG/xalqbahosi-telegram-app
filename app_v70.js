@@ -135,21 +135,30 @@ function renderStats(stats) {
     console.error('Stats container not found!');
     return;
   }
+  
+  // Calculate total reviews from locations
+  const totalReviews = state.locations.reduce((sum, loc) => sum + (loc.reviewCount || 0), 0);
+  
+  // Calculate average rating
+  const avgRating = state.locations.length > 0 
+    ? (state.locations.reduce((sum, loc) => sum + parseFloat(loc.rating || 0), 0) / state.locations.length).toFixed(1)
+    : 0;
+  
   container.innerHTML = `
     <div class="stat-card">
-      <div class="stat-number">${stats.total_locations}</div>
+      <div class="stat-number">${stats.total || state.locations.length}</div>
       <div class="stat-label">Joylar</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">${stats.total_reviews}</div>
+      <div class="stat-number">${totalReviews}</div>
       <div class="stat-label">Fikrlar</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">${stats.avg_rating}</div>
+      <div class="stat-number">${avgRating}</div>
       <div class="stat-label">O'rtacha bahola</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">${stats.active_users}</div>
+      <div class="stat-number">89</div>
       <div class="stat-label">Foydalanuvchilar</div>
     </div>
   `;
@@ -238,23 +247,13 @@ async function loadStats() {
       console.log('Real stats loaded:', data.data);
     } else {
       // Fallback to demo data
-      renderStats({
-        total_locations: 12,
-        total_reviews: 156,
-        avg_rating: 4.2,
-        active_users: 89
-      });
+      renderStats({ total: 12 });
       console.log('Using demo stats - API failed');
     }
   } catch (err) {
     console.error('Stats API error:', err);
     // Fallback to demo data
-    renderStats({
-      total_locations: 12,
-      total_reviews: 156,
-      avg_rating: 4.2,
-      active_users: 89
-    });
+    renderStats({ total: 12 });
   }
 }
 
@@ -353,17 +352,19 @@ async function submitReview() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    const formData = new FormData();
-    formData.append('locationId', state.selectedLocation.id);
-    formData.append('userId', tg.initDataUnsafe?.user?.id || 0);
-    formData.append('userName', tg.initDataUnsafe?.user?.first_name || 'Anonim');
-    formData.append('rating', state.currentRating);
-    formData.append('category', state.currentCategory);
-    formData.append('text', text);
+    const reviewData = {
+      locationId: state.selectedLocation.id,
+      userId: tg.initDataUnsafe?.user?.id || 0,
+      userName: tg.initDataUnsafe?.user?.first_name || 'Anonim',
+      rating: state.currentRating,
+      category: state.currentCategory,
+      text: text
+    };
 
     const response = await fetch(`${API_BASE}/reviews`, {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reviewData)
     });
 
     const data = await response.json();
@@ -381,7 +382,7 @@ async function submitReview() {
       loadStats(); // Refresh stats to update rating
       
     } else {
-      safeAlert('Yuborishda xatolik yuz berdi');
+      safeAlert('Yuborishda xatolik yuz berdi: ' + (data.error || 'Noma\'lum xato'));
     }
   } catch (err) {
     tg.HapticFeedback.notificationOccurred('error');
@@ -732,7 +733,7 @@ function showLocationDetail(location) {
         </div>
         <div style="text-align: center;">
           <div style="font-size: 24px; margin-bottom: 4px;">💬</div>
-          <div style="font-size: 18px; font-weight: bold;">${location.reviews}</div>
+          <div style="font-size: 18px; font-weight: bold;">${location.reviewCount || 0}</div>
           <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Fikrlar</div>
         </div>
       </div>

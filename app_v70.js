@@ -20,6 +20,14 @@ async function testAPI() {
   }
 }
 
+// ===== SCREEN FUNCTIONS =====
+function showStatsScreen() {
+  console.log('showStatsScreen called!');
+  showScreen('stats');
+  loadStats();
+  loadAnnouncements();
+}
+
 // ===== LOCAL STORAGE =====
 const appStorage = {
   getReviews: () => JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]'),
@@ -429,9 +437,32 @@ async function submitReview() {
 
 // ===== APP INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM Content Loaded - initializing app...');
+  
+  // Check if Telegram WebApp is available
+  if (!window.Telegram || !window.Telegram.WebApp) {
+    console.error('Telegram WebApp not available!');
+    return;
+  }
+  
   tg.expand(); // Expand to full height
 
-  document.getElementById('btn-geo').addEventListener('click', handleGeolocation);
+  // Check if buttons exist
+  const statsBtn = document.getElementById('btn-show-stats');
+  const geoBtn = document.getElementById('btn-geo');
+  const adminBtn = document.getElementById('btn-admin-view');
+  
+  console.log('Buttons found:', {
+    stats: !!statsBtn,
+    geo: !!geoBtn,
+    admin: !!adminBtn
+  });
+
+  // Add event listeners with error handling
+  if (geoBtn) {
+    geoBtn.addEventListener('click', handleGeolocation);
+    console.log('Geo button listener attached');
+  }
 
   // Map Filter Listeners
   document.querySelectorAll('.map-chip').forEach(chip => {
@@ -441,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tg.HapticFeedback.selectionChanged();
     });
   });
+  
   const searchBtn = document.getElementById('btn-search');
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
@@ -452,10 +484,25 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCategories();
 
   // Admin Panel Event Listeners
-  document.getElementById('btn-admin-view').addEventListener('click', () => showScreen('admin-login'));
-  document.getElementById('btn-do-login').addEventListener('click', handleAdminLogin);
-  document.getElementById('btn-admin-logout').addEventListener('click', handleAdminLogout);
-  document.getElementById('btn-save-location').addEventListener('click', saveNewLocation);
+  if (adminBtn) {
+    adminBtn.addEventListener('click', () => showScreen('admin-login'));
+    console.log('Admin button listener attached');
+  }
+  
+  const doLoginBtn = document.getElementById('btn-do-login');
+  if (doLoginBtn) {
+    doLoginBtn.addEventListener('click', handleAdminLogin);
+  }
+  
+  const logoutBtn = document.getElementById('btn-admin-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleAdminLogout);
+  }
+  
+  const saveLocationBtn = document.getElementById('btn-save-location');
+  if (saveLocationBtn) {
+    saveLocationBtn.addEventListener('click', saveNewLocation);
+  }
 
   // API Test button - with error handling
   const testApiBtn = document.getElementById('btn-test-api');
@@ -466,20 +513,30 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Test API button not found!');
   }
 
-  document.getElementById('btn-show-stats').addEventListener('click', () => {
-    console.log('Stats button clicked');
-    showScreen('stats');
-    loadStats();
-    loadAnnouncements();
-  });
-  document.getElementById('btn-post-news').addEventListener('click', saveAnnouncement);
+  // Stats button - with error handling
+  if (statsBtn) {
+    statsBtn.addEventListener('click', () => {
+      console.log('Stats button clicked!');
+      showScreen('stats');
+      loadStats();
+      loadAnnouncements();
+    });
+    console.log('Stats button listener attached');
+  } else {
+    console.error('Stats button not found!');
+  }
+  
+  const postNewsBtn = document.getElementById('btn-post-news');
+  if (postNewsBtn) {
+    postNewsBtn.addEventListener('click', saveAnnouncement);
+  }
 
   // Handle dark mode
   if (tg.colorScheme === 'dark') {
     document.body.setAttribute('data-theme', 'dark');
   }
 
-  console.log('Uzbek TMA Started');
+  console.log('Uzbek TMA Started successfully!');
 });
 
 // Bridge functions for map.js

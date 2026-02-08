@@ -3,8 +3,115 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-// Use local storage for demo - API blocked by Telegram
-const API_BASE = null; // Disabled due to Telegram security restrictions
+// Use Firebase for real-time synchronization
+const API_BASE = null; // Disabled - using Firebase instead
+
+// ===== CLOUD STORAGE =====
+const cloudStorage = {
+  async getReviews() {
+    try {
+      if (window.firebaseDB) {
+        return await window.firebaseDB.getReviews();
+      } else {
+        // Fallback to localStorage
+        return JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]');
+      }
+    } catch (err) {
+      console.error('Error getting reviews:', err);
+      return JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]');
+    }
+  },
+
+  async saveReview(review) {
+    try {
+      if (window.firebaseDB) {
+        return await window.firebaseDB.addReview(review);
+      } else {
+        // Fallback to localStorage
+        const reviews = JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]');
+        reviews.push(review);
+        window.localStorage.setItem('xalq_reviews', JSON.stringify(reviews));
+        return review;
+      }
+    } catch (err) {
+      console.error('Error saving review:', err);
+      // Fallback to localStorage
+      const reviews = JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]');
+      reviews.push(review);
+      window.localStorage.setItem('xalq_reviews', JSON.stringify(reviews));
+      return review;
+    }
+  },
+
+  async getLocations() {
+    try {
+      if (window.firebaseDB) {
+        return await window.firebaseDB.getLocations();
+      } else {
+        // Fallback to localStorage
+        return JSON.parse(window.localStorage.getItem('xalq_locations') || JSON.stringify(demoLocations));
+      }
+    } catch (err) {
+      console.error('Error getting locations:', err);
+      return JSON.parse(window.localStorage.getItem('xalq_locations') || JSON.stringify(demoLocations));
+    }
+  },
+
+  async updateLocation(id, updates) {
+    try {
+      if (window.firebaseDB) {
+        return await window.firebaseDB.updateLocation(id, updates);
+      } else {
+        // Fallback to localStorage
+        const locations = JSON.parse(window.localStorage.getItem('xalq_locations') || JSON.stringify(demoLocations));
+        const index = locations.findIndex(loc => loc.id === id);
+        if (index !== -1) {
+          locations[index] = { ...locations[index], ...updates };
+          window.localStorage.setItem('xalq_locations', JSON.stringify(locations));
+        }
+        return true;
+      }
+    } catch (err) {
+      console.error('Error updating location:', err);
+      return false;
+    }
+  },
+
+  async getAnnouncements() {
+    try {
+      if (window.firebaseDB) {
+        return await window.firebaseDB.getAnnouncements();
+      } else {
+        // Fallback to localStorage
+        return JSON.parse(window.localStorage.getItem('xalq_announcements') || '[]');
+      }
+    } catch (err) {
+      console.error('Error getting announcements:', err);
+      return JSON.parse(window.localStorage.getItem('xalq_announcements') || '[]');
+    }
+  },
+
+  async saveAnnouncement(announcement) {
+    try {
+      if (window.firebaseDB) {
+        return await window.firebaseDB.addAnnouncement(announcement);
+      } else {
+        // Fallback to localStorage
+        const announcements = JSON.parse(window.localStorage.getItem('xalq_announcements') || '[]');
+        announcements.unshift(announcement);
+        window.localStorage.setItem('xalq_announcements', JSON.stringify(announcements));
+        return announcement;
+      }
+    } catch (err) {
+      console.error('Error saving announcement:', err);
+      // Fallback to localStorage
+      const announcements = JSON.parse(window.localStorage.getItem('xalq_announcements') || '[]');
+      announcements.unshift(announcement);
+      window.localStorage.setItem('xalq_announcements', JSON.stringify(announcements));
+      return announcement;
+    }
+  }
+};
 
 // ===== DEBUG FUNCTIONS =====
 async function testAPI() {
@@ -282,11 +389,11 @@ const demoLocations = [
 
 // ===== API CALLS =====
 async function loadStats() {
-  console.log('Loading stats from local storage...');
+  console.log('Loading stats from cloud storage...');
   try {
-    // Load locations from local storage
-    const locations = appStorage.getLocations();
-    const reviews = appStorage.getReviews();
+    // Load locations from cloud storage
+    const locations = await cloudStorage.getLocations();
+    const reviews = await cloudStorage.getReviews();
     
     // Calculate stats
     const stats = {
@@ -298,7 +405,7 @@ async function loadStats() {
     };
     
     renderStats(stats);
-    console.log('Stats calculated from local storage:', stats);
+    console.log('Stats calculated from cloud storage:', stats);
   } catch (err) {
     console.error('Stats calculation error:', err);
     // Fallback to demo data
@@ -307,13 +414,13 @@ async function loadStats() {
 }
 
 async function loadAllLocations() {
-  console.log('Loading locations from local storage...');
+  console.log('Loading locations from cloud storage...');
   try {
-    // Load from local storage
-    state.locations = appStorage.getLocations();
-    console.log('Locations loaded from local storage:', state.locations.length);
+    // Load from cloud storage
+    state.locations = await cloudStorage.getLocations();
+    console.log('Locations loaded from cloud storage:', state.locations.length);
   } catch (err) {
-    console.error('Local storage error:', err);
+    console.error('Cloud storage error:', err);
     // Fallback to demo data
     state.locations = demoLocations;
   }
@@ -395,7 +502,6 @@ async function submitReview() {
   try {
     // Create review object
     const review = {
-      id: Date.now(),
       locationId: state.selectedLocation.id,
       userId: tg.initDataUnsafe?.user?.id || 0,
       userName: tg.initDataUnsafe?.user?.first_name || 'Anonim',
@@ -405,27 +511,28 @@ async function submitReview() {
       createdAt: new Date().toISOString()
     };
 
-    console.log('Saving review locally:', review);
+    console.log('Saving review to cloud:', review);
 
-    // Save to local storage
-    const reviews = appStorage.getReviews();
-    reviews.push(review);
-    appStorage.saveReviews(reviews);
+    // Save to cloud storage
+    await cloudStorage.saveReview(review);
 
     // Update location rating
-    const locations = appStorage.getLocations();
+    const locations = await cloudStorage.getLocations();
     const location = locations.find(loc => loc.id === state.selectedLocation.id);
     if (location) {
-      // Calculate new rating
+      // Get all reviews for this location
+      const reviews = await cloudStorage.getReviews();
       const locationReviews = reviews.filter(r => r.locationId === location.id);
       const avgRating = locationReviews.reduce((sum, r) => sum + r.rating, 0) / locationReviews.length;
-      location.rating = avgRating.toFixed(1);
-      location.reviewCount = locationReviews.length;
-      appStorage.saveLocations(locations);
+      
+      await cloudStorage.updateLocation(location.id, {
+        rating: avgRating.toFixed(1),
+        reviewCount: locationReviews.length
+      });
     }
 
     tg.HapticFeedback.notificationOccurred('success');
-    safePopup('Fikringiz uchun rahmat! Saqlandi mahalliy saqlashda.');
+    safePopup('Fikringiz uchun rahmat! Saqlandi bulut saqlashda.');
 
     document.getElementById('modal-review').classList.remove('active');
     document.getElementById('review-text').value = '';
@@ -831,50 +938,52 @@ async function loadStats() {
 function showLocationDetail(location) {
   state.selectedLocation = location;
   
-  // Get reviews for this location
-  const reviews = appStorage.getReviews().filter(r => r.locationId === location.id);
-  
-  const detailContent = document.getElementById('detail-content');
-  detailContent.innerHTML = `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <h2 style="margin-bottom: 8px;">${location.name}</h2>
-      <p style="color: var(--tg-theme-hint-color); margin-bottom: 16px;">${location.address}</p>
-      <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
-        <div style="text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 4px;">⭐</div>
-          <div style="font-size: 18px; font-weight: bold;">${location.rating || 0}</div>
-          <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Reyting</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 4px;">💬</div>
-          <div style="font-size: 18px; font-weight: bold;">${location.reviewCount || reviews.length}</div>
-          <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Fikrlar</div>
-        </div>
-      </div>
-      <button onclick="openReviewModal()" class="btn-primary" style="width: 100%; margin-bottom: 16px;">
-        📝 Fikr qoldirish
-      </button>
-    </div>
+  // Get reviews for this location from cloud storage
+  cloudStorage.getReviews().then(reviews => {
+    const locationReviews = reviews.filter(r => r.locationId === location.id);
     
-    <div style="border-top: 1px solid var(--tg-theme-hint-color); padding-top: 16px;">
-      <h3 style="margin-bottom: 12px;">So'nggi fikrlar (${reviews.length})</h3>
-      ${reviews.length > 0 ? reviews.map(review => `
-        <div style="background: var(--tg-theme-secondary-bg-color); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="color: var(--tg-theme-text-color);">${review.userName}</strong>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              ${'⭐'.repeat(review.rating)}
-              <span style="font-size: 12px; color: var(--tg-theme-hint-color);">${review.rating}.0</span>
+    const detailContent = document.getElementById('detail-content');
+    detailContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="margin-bottom: 8px;">${location.name}</h2>
+        <p style="color: var(--tg-theme-hint-color); margin-bottom: 16px;">${location.address}</p>
+        <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">⭐</div>
+            <div style="font-size: 18px; font-weight: bold;">${location.rating || 0}</div>
+            <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Reyting</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">💬</div>
+            <div style="font-size: 18px; font-weight: bold;">${location.reviewCount || locationReviews.length}</div>
+            <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Fikrlar</div>
+          </div>
+        </div>
+        <button onclick="openReviewModal()" class="btn-primary" style="width: 100%; margin-bottom: 16px;">
+          📝 Fikr qoldirish
+        </button>
+      </div>
+      
+      <div style="border-top: 1px solid var(--tg-theme-hint-color); padding-top: 16px;">
+        <h3 style="margin-bottom: 12px;">So'nggi fikrlar (${locationReviews.length})</h3>
+        ${locationReviews.length > 0 ? locationReviews.map(review => `
+          <div style="background: var(--tg-theme-secondary-bg-color); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong style="color: var(--tg-theme-text-color);">${review.userName}</strong>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                ${'⭐'.repeat(review.rating)}
+                <span style="font-size: 12px; color: var(--tg-theme-hint-color);">${review.rating}.0</span>
+              </div>
+            </div>
+            <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${review.text}</p>
+            <div style="font-size: 11px; color: var(--tg-theme-hint-color);">
+              ${getCategoryName(review.category)} • ${new Date(review.createdAt).toLocaleDateString('uz-UZ')}
             </div>
           </div>
-          <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${review.text}</p>
-          <div style="font-size: 11px; color: var(--tg-theme-hint-color);">
-            ${getCategoryName(review.category)} • ${new Date(review.createdAt).toLocaleDateString('uz-UZ')}
-          </div>
-        </div>
-      `).join('') : '<div style="color: var(--tg-theme-hint-color); font-size: 13px;">Hozircha fikrlar yo\'q. Birinchi bo\'lib fikr qoldiring!</div>'}
-    </div>
-  `;
+        `).join('') : '<div style="color: var(--tg-theme-hint-color); font-size: 13px;">Hozircha fikrlar yo\'q. Birinchi bo\'lib fikr qoldiring!</div>'}
+      </div>
+    `;
+  });
   
   showScreen('detail');
 }
@@ -902,8 +1011,8 @@ function openReviewModal() {
 async function loadAnnouncements() {
   const container = document.getElementById('announcements-list');
   try {
-    // Load from local storage
-    const announcements = appStorage.getAnnouncements();
+    // Load from cloud storage
+    const announcements = await cloudStorage.getAnnouncements();
     
     if (announcements.length > 0) {
       container.innerHTML = announcements.map(news => `
@@ -913,7 +1022,7 @@ async function loadAnnouncements() {
           <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${new Date(news.createdAt).toLocaleDateString('uz-UZ')}</div>
         </div>
       `).join('');
-      console.log('Announcements loaded from local storage:', announcements.length);
+      console.log('Announcements loaded from cloud storage:', announcements.length);
     } else {
       // Fallback to demo announcements
       const demoNews = [
@@ -938,7 +1047,7 @@ async function loadAnnouncements() {
           <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${news.createdAt.toLocaleDateString('uz-UZ')}</div>
         </div>
       `).join('');
-      console.log('Using demo announcements - no local data');
+      console.log('Using demo announcements - no cloud data');
     }
   } catch (err) {
     console.error('Announcements error:', err);
@@ -960,7 +1069,6 @@ async function saveAnnouncement() {
   try {
     // Create announcement object
     const announcement = {
-      id: Date.now(),
       title: title,
       content: content,
       type: type,
@@ -968,15 +1076,13 @@ async function saveAnnouncement() {
       authorName: tg.initDataUnsafe?.user?.first_name || 'Admin'
     };
 
-    console.log('Saving announcement locally:', announcement);
+    console.log('Saving announcement to cloud:', announcement);
 
-    // Save to local storage
-    const announcements = appStorage.getAnnouncements();
-    announcements.unshift(announcement); // Add to beginning
-    appStorage.saveAnnouncements(announcements);
+    // Save to cloud storage
+    await cloudStorage.saveAnnouncement(announcement);
 
     tg.HapticFeedback.notificationOccurred('success');
-    safePopup('E\'lon muvaffaqiyatli joylandi! Saqlandi mahalliy saqlashda.');
+    safePopup('E\'lon muvaffaqiyatli joylandi! Saqlandi bulut saqlashda.');
     
     // Clear form
     document.getElementById('news-title').value = '';

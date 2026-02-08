@@ -3,8 +3,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 // ===== CONFIGURATION =====
-// Use demo data for now - API will be optional
-const API_BASE = null; // Disabled for now
+// Use real API for data persistence
+const API_BASE = 'http://85.198.80.141/api';
 
 // ===== HELPERS =====
 function safeAlert(message) {
@@ -229,30 +229,56 @@ const demoLocations = [
 // ===== API CALLS =====
 async function loadStats() {
   console.log('Loading stats...');
-  // Always show demo data for now
-  renderStats({
-    total_locations: 12,
-    total_reviews: 156,
-    avg_rating: 4.2,
-    active_users: 89
-  });
-  console.log('Stats loaded');
-  
-  // Try API in background (optional)
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/health`);
-      const data = await response.json();
-      console.log('API connected successfully:', data);
-    } catch (err) {
-      console.log('API not available, using demo data');
+  try {
+    const response = await fetch(`${API_BASE}/stats`);
+    const data = await response.json();
+    
+    if (data.success) {
+      renderStats(data.data);
+      console.log('Real stats loaded:', data.data);
+    } else {
+      // Fallback to demo data
+      renderStats({
+        total_locations: 12,
+        total_reviews: 156,
+        avg_rating: 4.2,
+        active_users: 89
+      });
+      console.log('Using demo stats - API failed');
     }
+  } catch (err) {
+    console.error('Stats API error:', err);
+    // Fallback to demo data
+    renderStats({
+      total_locations: 12,
+      total_reviews: 156,
+      avg_rating: 4.2,
+      active_users: 89
+    });
   }
 }
 
 async function loadAllLocations() {
-  // Use demo data
-  state.locations = demoLocations;
+  console.log('Loading locations...');
+  try {
+    const response = await fetch(`${API_BASE}/locations`);
+    const data = await response.json();
+    
+    if (data.success && data.data.length > 0) {
+      state.locations = data.data;
+      console.log('Real locations loaded:', data.data.length);
+    } else {
+      // Fallback to demo data
+      state.locations = demoLocations;
+      console.log('Using demo locations - API failed or empty');
+    }
+  } catch (err) {
+    console.error('Locations API error:', err);
+    // Fallback to demo data
+    state.locations = demoLocations;
+  }
+  
+  // Update UI
   if (typeof updateMarkers === 'function') {
     updateMarkers(state.locations);
   }
@@ -327,20 +353,39 @@ async function submitReview() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    tg.HapticFeedback.notificationOccurred('success');
-    safePopup('Fikringiz uchun rahmat! Demo versiyada saqlanmaydi.');
+    const formData = new FormData();
+    formData.append('locationId', state.selectedLocation.id);
+    formData.append('userId', tg.initDataUnsafe?.user?.id || 0);
+    formData.append('userName', tg.initDataUnsafe?.user?.first_name || 'Anonim');
+    formData.append('rating', state.currentRating);
+    formData.append('category', state.currentCategory);
+    formData.append('text', text);
 
-    document.getElementById('modal-review').classList.remove('active');
-    document.getElementById('review-text').value = '';
+    const response = await fetch(`${API_BASE}/reviews`, {
+      method: 'POST',
+      body: formData
+    });
 
-    tg.MainButton.hide();
-    
+    const data = await response.json();
+    if (data.success) {
+      tg.HapticFeedback.notificationOccurred('success');
+      safePopup('Fikringiz uchun rahmat!');
+
+      document.getElementById('modal-review').classList.remove('active');
+      document.getElementById('review-text').value = '';
+
+      tg.MainButton.hide();
+      
+      // Refresh data
+      loadAllLocations();
+      loadStats(); // Refresh stats to update rating
+      
+    } else {
+      safeAlert('Yuborishda xatolik yuz berdi');
+    }
   } catch (err) {
     tg.HapticFeedback.notificationOccurred('error');
-    safeAlert('Yuborishda xatolik yuz berdi');
+    safeAlert('Yuborishda xatolik yuz berdi: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Yuborish';
@@ -397,33 +442,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Bridge functions for map.js
 async function onLocationClick(locationId) {
-  // Find location in demo data
-  const location = demoLocations.find(loc => loc.id === locationId);
-  if (!location) {
-    safeAlert('Joy topilmadi');
-    return;
-  }
-
   // Show loading state
   tg.MainButton.setText('Yuklanmoqda...');
   tg.MainButton.show();
   tg.MainButton.enable();
 
   try {
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Set selected location
-    state.selectedLocation = location;
-    
-    // Hide loading and show details
-    tg.MainButton.hide();
-    showLocationDetail(location);
-    
+    const response = await fetch(`${API_BASE}/locations/${locationId}`);
+    const data = await response.json();
+
+    if (data.success) {
+      state.selectedLocation = data.data;
+      tg.MainButton.hide();
+      showLocationDetail(data.data);
+    } else {
+      // Fallback to demo data
+      const location = demoLocations.find(loc => loc.id === locationId);
+      if (location) {
+        state.selectedLocation = location;
+        tg.MainButton.hide();
+        showLocationDetail(location);
+      } else {
+        safeAlert('Joy topilmadi');
+      }
+    }
   } catch (err) {
     console.error('Location detail error:', err);
-    tg.MainButton.hide();
-    safeAlert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
+    // Fallback to demo data
+    const location = demoLocations.find(loc => loc.id === locationId);
+    if (location) {
+      state.selectedLocation = location;
+      tg.MainButton.hide();
+      showLocationDetail(location);
+    } else {
+      tg.MainButton.hide();
+      safeAlert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
+    }
   }
 }
 
@@ -720,29 +774,49 @@ function openReviewModal() {
 
 async function loadAnnouncements() {
   const container = document.getElementById('announcements-list');
-  // Use demo announcements
-  const demoNews = [
-    {
-      title: 'Yangi maktab ochildi',
-      content: 'Bunyodkor tumanida 3-sonli maktab binosi qurilmoqda',
-      type: 'success',
-      createdAt: new Date()
-    },
-    {
-      title: 'Yo\'l ta\'mirlanmoqda',
-      content: 'Olmazor ko\'chasidagi yo\'l ta\'miri boshlandi',
-      type: 'warning',
-      createdAt: new Date()
+  try {
+    const response = await fetch(`${API_BASE}/announcements`);
+    const data = await response.json();
+    
+    if (data.success && data.data.length > 0) {
+      container.innerHTML = data.data.map(news => `
+        <div style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px; border-left: 4px solid ${news.type === 'success' ? '#2ecc71' : news.type === 'warning' ? '#f1c40f' : '#3498db'};">
+          <h4 style="margin-bottom: 6px; font-size: 15px;">${news.title}</h4>
+          <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${news.content}</p>
+          <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${new Date(news.createdAt).toLocaleDateString('uz-UZ')}</div>
+        </div>
+      `).join('');
+      console.log('Real announcements loaded:', data.data.length);
+    } else {
+      // Fallback to demo announcements
+      const demoNews = [
+        {
+          title: 'Yangi maktab ochildi',
+          content: 'Bunyodkor tumanida 3-sonli maktab binosi qurilmoqda',
+          type: 'success',
+          createdAt: new Date()
+        },
+        {
+          title: 'Yo\'l ta\'mirlanmoqda',
+          content: 'Olmazor ko\'chasidagi yo\'l ta\'miri boshlandi',
+          type: 'warning',
+          createdAt: new Date()
+        }
+      ];
+      
+      container.innerHTML = demoNews.map(news => `
+        <div style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px; border-left: 4px solid ${news.type === 'success' ? '#2ecc71' : news.type === 'warning' ? '#f1c40f' : '#3498db'};">
+          <h4 style="margin-bottom: 6px; font-size: 15px;">${news.title}</h4>
+          <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${news.content}</p>
+          <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${news.createdAt.toLocaleDateString('uz-UZ')}</div>
+        </div>
+      `).join('');
+      console.log('Using demo announcements - API failed');
     }
-  ];
-  
-  container.innerHTML = demoNews.map(news => `
-    <div style="background: var(--tg-theme-secondary-bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px; border-left: 4px solid ${news.type === 'success' ? '#2ecc71' : news.type === 'warning' ? '#f1c40f' : '#3498db'};">
-      <h4 style="margin-bottom: 6px; font-size: 15px;">${news.title}</h4>
-      <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${news.content}</p>
-      <div style="font-size: 10px; color: var(--tg-theme-hint-color);">${news.createdAt.toLocaleDateString('uz-UZ')}</div>
-    </div>
-  `).join('');
+  } catch (err) {
+    console.error('Announcements API error:', err);
+    container.innerHTML = '<div style="color: var(--tg-theme-hint-color); font-size: 13px;">Yuklashda xato</div>';
+  }
 }
 
 async function saveAnnouncement() {
@@ -757,21 +831,29 @@ async function saveAnnouncement() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    tg.HapticFeedback.notificationOccurred('success');
-    safePopup('E\'lon muvaffaqiyatli joylandi! Demo versiyada saqlanmaydi.');
-    
-    // Clear form
-    document.getElementById('news-title').value = '';
-    document.getElementById('news-content').value = '';
-    
-    // Refresh announcements
-    loadAnnouncements();
-    
+    const response = await fetch(`${API_BASE}/announcements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content, type })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      tg.HapticFeedback.notificationOccurred('success');
+      safePopup('E\'lon muvaffaqiyatli joylandi!');
+      
+      // Clear form
+      document.getElementById('news-title').value = '';
+      document.getElementById('news-content').value = '';
+      
+      // Refresh announcements
+      loadAnnouncements();
+      
+    } else {
+      safeAlert('Yuborishda xatolik yuz berdi');
+    }
   } catch (err) {
-    safeAlert('Yuborishda xatolik yuz berdi');
+    safeAlert('Yuborishda xatolik yuz berdi: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = 'E\'lon qilish';

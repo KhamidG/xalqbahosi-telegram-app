@@ -504,19 +504,17 @@ async function handleAdminLogin() {
   if (!login || !pass) return safeAlert('Login va parolni kiriting');
 
   try {
-    const response = await fetch(`${API_BASE}/api/admin/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login, password: pass })
-    });
-    const data = await response.json();
-
-    if (data.success) {
+    // Simulate login check for demo
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Demo credentials: admin/admin123
+    if (login === 'admin' && pass === 'admin123') {
       tg.HapticFeedback.notificationOccurred('success');
       showScreen('admin-dashboard');
       renderAdminPlacesList();
+      safeAlert('Admin panelga muvaffaqiyatli kirildi!');
     } else {
-      safeAlert(data.error);
+      safeAlert('Login yoki parol xato. Demo: admin/admin123');
     }
   } catch (err) {
     safeAlert('Login xatosi: ' + err.message);
@@ -542,31 +540,53 @@ async function saveNewLocation() {
   btn.textContent = 'Saqlanmoqda...';
 
   try {
-    const response = await fetch(`${API_BASE}/api/locations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, type, lat, lon, address })
-    });
-    const data = await response.json();
-
-    if (data.success) {
-      tg.HapticFeedback.notificationOccurred('success');
-      safePopup('Joy muvaffaqiyatli saqlandi!');
-      // Clear form
-      document.getElementById('new-loc-name').value = '';
-      document.getElementById('new-loc-address').value = '';
-      document.getElementById('new-loc-lat').value = '';
-      document.getElementById('new-loc-lon').value = '';
-
-      loadAllLocations(); // Refresh map data
-      renderAdminPlacesList(); // Refresh admin list
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Add to demo locations
+    const newLocation = {
+      id: demoLocations.length + 1,
+      name,
+      type,
+      address,
+      lat,
+      lon,
+      rating: 0,
+      reviews: 0
+    };
+    demoLocations.push(newLocation);
+    
+    tg.HapticFeedback.notificationOccurred('success');
+    safePopup('Joy muvaffaqiyatli saqlandi! Demo versiyada ko\'rsatiladi.');
+    
+    // Clear form
+    document.getElementById('new-loc-name').value = '';
+    document.getElementById('new-loc-address').value = '';
+    document.getElementById('new-loc-lat').value = '';
+    document.getElementById('new-loc-lon').value = '';
+    
+    // Refresh admin list
+    renderAdminPlacesList();
+    
   } catch (err) {
-    safeAlert('Saqlashda xato: ' + err.message);
+    safeAlert('Saqlashda xatolik yuz berdi');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Saqlash';
   }
+}
+
+async function loadCategories() {
+  // Use demo categories
+  const demoCategories = [
+    { id: 'infrastructure', name: 'Infratuzilma', icon: '🏗️' },
+    { id: 'cleanliness', name: 'Tozalik', icon: '🧹' },
+    { id: 'staff', name: 'Xodimlar', icon: '👨‍💼' },
+    { id: 'wait_time', name: 'Kutish vaqti', icon: '⏱️' },
+    { id: 'accessibility', name: 'Qulaylik', icon: '♿' }
+  ];
+  state.categories = demoCategories;
+  renderCategories();
 }
 
 function renderAdminPlacesList() {

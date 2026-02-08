@@ -28,6 +28,19 @@ function showStatsScreen() {
   loadAnnouncements();
 }
 
+// ===== UTILITY FUNCTIONS =====
+function clearAllData() {
+  if (confirm('Barcha ma\'lumotlarni o\'chirishni hohlaysizmi?')) {
+    localStorage.removeItem('xalq_reviews');
+    localStorage.removeItem('xalq_locations');
+    localStorage.removeItem('xalq_announcements');
+    safeAlert('Barcha ma\'lumotlar o\'chirildi!');
+    loadStats();
+    loadAllLocations();
+    loadAnnouncements();
+  }
+}
+
 // ===== LOCAL STORAGE =====
 const appStorage = {
   getReviews: () => JSON.parse(window.localStorage.getItem('xalq_reviews') || '[]'),
@@ -818,6 +831,9 @@ async function loadStats() {
 function showLocationDetail(location) {
   state.selectedLocation = location;
   
+  // Get reviews for this location
+  const reviews = appStorage.getReviews().filter(r => r.locationId === location.id);
+  
   const detailContent = document.getElementById('detail-content');
   detailContent.innerHTML = `
     <div style="text-align: center; margin-bottom: 20px;">
@@ -826,12 +842,12 @@ function showLocationDetail(location) {
       <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
         <div style="text-align: center;">
           <div style="font-size: 24px; margin-bottom: 4px;">⭐</div>
-          <div style="font-size: 18px; font-weight: bold;">${location.rating}</div>
+          <div style="font-size: 18px; font-weight: bold;">${location.rating || 0}</div>
           <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Reyting</div>
         </div>
         <div style="text-align: center;">
           <div style="font-size: 24px; margin-bottom: 4px;">💬</div>
-          <div style="font-size: 18px; font-weight: bold;">${location.reviewCount || 0}</div>
+          <div style="font-size: 18px; font-weight: bold;">${location.reviewCount || reviews.length}</div>
           <div style="font-size: 12px; color: var(--tg-theme-hint-color);">Fikrlar</div>
         </div>
       </div>
@@ -841,10 +857,22 @@ function showLocationDetail(location) {
     </div>
     
     <div style="border-top: 1px solid var(--tg-theme-hint-color); padding-top: 16px;">
-      <h3 style="margin-bottom: 12px;">So'nggi fikrlar</h3>
-      <div style="color: var(--tg-theme-hint-color); font-size: 13px;">
-        Hozircha fikrlar yo'q. Birinchi bo'lib fikr qoldiring!
-      </div>
+      <h3 style="margin-bottom: 12px;">So'nggi fikrlar (${reviews.length})</h3>
+      ${reviews.length > 0 ? reviews.map(review => `
+        <div style="background: var(--tg-theme-secondary-bg-color); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="color: var(--tg-theme-text-color);">${review.userName}</strong>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              ${'⭐'.repeat(review.rating)}
+              <span style="font-size: 12px; color: var(--tg-theme-hint-color);">${review.rating}.0</span>
+            </div>
+          </div>
+          <p style="font-size: 13px; color: var(--tg-theme-text-color); margin-bottom: 8px;">${review.text}</p>
+          <div style="font-size: 11px; color: var(--tg-theme-hint-color);">
+            ${getCategoryName(review.category)} • ${new Date(review.createdAt).toLocaleDateString('uz-UZ')}
+          </div>
+        </div>
+      `).join('') : '<div style="color: var(--tg-theme-hint-color); font-size: 13px;">Hozircha fikrlar yo\'q. Birinchi bo\'lib fikr qoldiring!</div>'}
     </div>
   `;
   
@@ -930,28 +958,35 @@ async function saveAnnouncement() {
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    const response = await fetch(`${API_BASE}/announcements`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, type })
-    });
+    // Create announcement object
+    const announcement = {
+      id: Date.now(),
+      title: title,
+      content: content,
+      type: type,
+      createdAt: new Date().toISOString(),
+      authorName: tg.initDataUnsafe?.user?.first_name || 'Admin'
+    };
 
-    const data = await response.json();
-    if (data.success) {
-      tg.HapticFeedback.notificationOccurred('success');
-      safePopup('E\'lon muvaffaqiyatli joylandi!');
-      
-      // Clear form
-      document.getElementById('news-title').value = '';
-      document.getElementById('news-content').value = '';
-      
-      // Refresh announcements
-      loadAnnouncements();
-      
-    } else {
-      safeAlert('Yuborishda xatolik yuz berdi');
-    }
+    console.log('Saving announcement locally:', announcement);
+
+    // Save to local storage
+    const announcements = appStorage.getAnnouncements();
+    announcements.unshift(announcement); // Add to beginning
+    appStorage.saveAnnouncements(announcements);
+
+    tg.HapticFeedback.notificationOccurred('success');
+    safePopup('E\'lon muvaffaqiyatli joylandi! Saqlandi mahalliy saqlashda.');
+    
+    // Clear form
+    document.getElementById('news-title').value = '';
+    document.getElementById('news-content').value = '';
+    
+    // Refresh announcements
+    loadAnnouncements();
+    
   } catch (err) {
+    console.error('Save announcement error:', err);
     safeAlert('Yuborishda xatolik yuz berdi: ' + err.message);
   } finally {
     btn.disabled = false;

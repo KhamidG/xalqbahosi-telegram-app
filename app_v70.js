@@ -130,47 +130,24 @@ function handleGeolocation() {
 
 // ===== API CALLS =====
 async function loadNearbyLocations() {
-  try {
-    const { latitude, longitude } = state.userLocation;
-    const response = await fetch(`${API_BASE}/api/locations/nearby?lat=${latitude}&lon=${longitude}&radius=5000`);
-    const data = await response.json();
-    if (data.success && data.data.length > 0) {
-      state.locations = data.data;
-      updateMarkers(state.locations);
-      renderLocationsList();
-    } else {
-      // If no nearby locations, load all
-      loadAllLocations();
-    }
-  } catch (err) {
-    console.error('API Error:', err);
-    loadAllLocations();
+  // Use demo data
+  state.locations = demoLocations;
+  if (typeof updateMarkers === 'function') {
+    updateMarkers(state.locations);
+  }
+  if (typeof renderLocationsList === 'function') {
+    renderLocationsList();
   }
 }
 
 async function loadAllLocations() {
-  try {
-    const response = await fetch(`${API_BASE}/api/locations`);
-
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.success) {
-      state.locations = data.data;
-      updateMarkers(state.locations);
-      renderLocationsList();
-
-      if (state.locations.length === 0) {
-        safeAlert('Hozircha xaritada hech qanday joy belgilanmagan.');
-      }
-    } else {
-      safeAlert('Ma\'lumotlarni yuklashda xatolik yuz berdi.');
-    }
-  } catch (err) {
-    console.error('All Locations Error:', err);
-    safeAlert(`Serverga ulanib bo'lmadi.\nURL: ${API_BASE}\nXato: ${err.message}`);
+  // Use demo data
+  state.locations = demoLocations;
+  if (typeof updateMarkers === 'function') {
+    updateMarkers(state.locations);
+  }
+  if (typeof renderLocationsList === 'function') {
+    renderLocationsList();
   }
 }
 
@@ -315,47 +292,22 @@ async function submitReview() {
   const text = document.getElementById('review-text').value;
   if (!text.trim()) return safeAlert('Izoh qoldiring');
 
-  const fileInput = document.getElementById('review-file');
-  const file = fileInput.files[0];
-
   const btn = document.getElementById('btn-submit-review-fallback');
   btn.disabled = true;
   btn.textContent = 'Yuborilmoqda...';
 
   try {
-    const formData = new FormData();
-    formData.append('locationId', state.selectedLocation.id);
-    formData.append('userId', tg.initDataUnsafe?.user?.id || 0);
-    formData.append('userName', tg.initDataUnsafe?.user?.first_name || 'Anonim');
-    formData.append('rating', state.currentRating);
-    formData.append('category', state.currentCategory);
-    formData.append('text', text);
-    if (file) {
-      formData.append('media', file);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    tg.HapticFeedback.notificationOccurred('success');
+    safePopup('Fikringiz uchun rahmat! Demo versiyada saqlanmaydi.');
 
-    const response = await fetch(`${API_BASE}/api/reviews`, {
-      method: 'POST',
-      body: formData
-    });
+    document.getElementById('modal-review').classList.remove('active');
+    document.getElementById('review-text').value = '';
 
-    const data = await response.json();
-    if (data.success) {
-      tg.HapticFeedback.notificationOccurred('success');
-
-      if (file) {
-        safePopup('Fikringiz va isbotingiz qabul qilindi! AI tekshiruvi boshlandi.');
-      } else {
-        safePopup('Fikringiz uchun rahmat!');
-      }
-
-      document.getElementById('modal-review').classList.remove('active');
-      document.getElementById('review-file').value = '';
-      document.getElementById('file-preview').textContent = 'Fayl tanlanmagan';
-
-      tg.MainButton.hide();
-      loadAllLocations();
-    }
+    tg.MainButton.hide();
+    
   } catch (err) {
     tg.HapticFeedback.notificationOccurred('error');
     safeAlert('Yuborishda xatolik yuz berdi');
@@ -414,35 +366,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Bridge functions for map.js
 async function onLocationClick(locationId) {
-  const url = `${API_BASE}/api/locations/${locationId}`;
+  // Find location in demo data
+  const location = demoLocations.find(loc => loc.id === locationId);
+  if (!location) {
+    safeAlert('Joy topilmadi');
+    return;
+  }
+
+  // Show loading state
+  tg.MainButton.setText('Yuklanmoqda...');
+  tg.MainButton.show();
+  tg.MainButton.enable();
+
   try {
-    // Show loading state
-    tg.MainButton.setText('Yuklanmoqda...');
-    tg.MainButton.show();
-    tg.MainButton.showProgress();
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Server xatosi: ${response.status}`);
-    }
-
-    const data = await response.json();
-
+    // Simulate loading delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Set selected location
+    state.selectedLocation = location;
+    
+    // Hide loading and show details
     tg.MainButton.hide();
-    tg.MainButton.hideProgress();
-
-    if (data.success) {
-      state.selectedLocation = data.data;
-      renderLocationDetail(state.selectedLocation);
-      showScreen('detail');
-      tg.HapticFeedback.impactOccurred('light');
-    } else {
-      safeAlert('Ma\'lumotlarni olishda xatolik: ' + (data.error || 'Noma\'lum xato'));
-    }
+    showLocationDetail(location);
+    
   } catch (err) {
+    console.error('Location detail error:', err);
     tg.MainButton.hide();
-    console.error('Error loading location details:', err);
-    safeAlert(`Ma'lumotlarni yuklashda xatolik yuz berdi.\nURL: ${url}\nXato: ${err.message}`);
+    safeAlert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
   }
 }
 

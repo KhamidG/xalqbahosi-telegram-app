@@ -46,7 +46,18 @@ const cloudStorage = {
   async getLocations() {
     try {
       if (window.firebaseDB) {
-        return await window.firebaseDB.getLocations();
+        const locations = await window.firebaseDB.getLocations();
+        
+        // If no locations in Firestore, initialize with demo data
+        if (locations.length === 0) {
+          console.log('No locations in Firestore, initializing with demo data...');
+          for (const demoLocation of demoLocations) {
+            await window.firebaseDB.addLocation(demoLocation);
+          }
+          return await window.firebaseDB.getLocations();
+        }
+        
+        return locations;
       } else {
         // Fallback to localStorage
         return JSON.parse(window.localStorage.getItem('xalq_locations') || JSON.stringify(demoLocations));
@@ -145,6 +156,53 @@ function clearAllData() {
     loadStats();
     loadAllLocations();
     loadAnnouncements();
+  }
+}
+
+async function initializeDemoData() {
+  if (confirm('Demo ma\'lumotlarni Firebase ga yuklashni hohlaysizmi?')) {
+    try {
+      if (window.firebaseDB) {
+        console.log('Initializing demo data to Firebase...');
+        
+        // Add demo locations
+        for (const demoLocation of demoLocations) {
+          await window.firebaseDB.addLocation(demoLocation);
+        }
+        
+        // Add demo announcements
+        const demoNews = [
+          {
+            title: 'Yangi maktab ochildi',
+            content: 'Bunyodkor tumanida 3-sonli maktab binosi qurilmoqda',
+            type: 'success',
+            createdAt: new Date().toISOString(),
+            authorName: 'Admin'
+          },
+          {
+            title: 'Yo\'l ta\'mirlanmoqda',
+            content: 'Olmazor ko\'chasidagi yo\'l ta\'miri boshlandi',
+            type: 'warning',
+            createdAt: new Date().toISOString(),
+            authorName: 'Admin'
+          }
+        ];
+        
+        for (const news of demoNews) {
+          await window.firebaseDB.addAnnouncement(news);
+        }
+        
+        safeAlert('Demo ma\'lumotlar muvaffaqiyatli yuklandi!');
+        loadAllLocations();
+        loadStats();
+        loadAnnouncements();
+      } else {
+        safeAlert('Firebase hali yuklanmadi!');
+      }
+    } catch (err) {
+      console.error('Error initializing demo data:', err);
+      safeAlert('Xatolik yuz berdi: ' + err.message);
+    }
   }
 }
 

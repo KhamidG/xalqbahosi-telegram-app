@@ -69,6 +69,12 @@ class FirebaseDB {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
+  async addLocation(location) {
+    if (!this.db) await this.init();
+    const docRef = await this.db.collection('locations').add(location);
+    return { id: docRef.id, ...location };
+  }
+
   async updateLocation(id, updates) {
     if (!this.db) await this.init();
     await this.db.collection('locations').doc(id).update(updates);
